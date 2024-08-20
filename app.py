@@ -3,6 +3,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain.pydantic_v1 import BaseModel, Field
+import re
 from typing import Dict
 import json
 import os
@@ -21,7 +22,7 @@ parser = PydanticOutputParser(pydantic_object=ChatbotResponse)
 
 chatbot_prompt = ChatPromptTemplate.from_template(
     """
-    You are an AI assistant designed to gather essential company-level information for Product Requirements Document (PRD) generation. Your task is to collect the following information from the user, one item at a time:
+    You are an AI assistant designed to gather essential company-level information for Product Requirements Document (PRD) generation. Your task is to collect the following information from the user:
 
     1. Company name and brief description
     2. Brand guidelines (tone, style)
@@ -59,23 +60,48 @@ chatbot_prompt = ChatPromptTemplate.from_template(
     Ensure that your response includes the following fields:
     - 'response': Your actual response to the human, including the next question you're asking or the confirmation of information received.
     - 'collected_data': A dictionary of the information collected so far, with keys corresponding to the items in the list above.
-    - 'isCompleted': A boolean indicating whether all information has been collected (true) or if there are still items to address (false).
+    - 'isCompleted': A boolean indicating whether all information f has been collected (true) or if there are still items to address (false).
     """
 )
 
 chat_model = ChatOpenAI(temperature=0.7, model="gpt-4o-mini")
 
 def parse_ai_response(response_content):
-    # try:
+    try:
+        # First, try to parse the entire response as JSON
         parsed_json = json.loads(response_content)
         return ChatbotResponse(**parsed_json)
-    # except json.JSONDecodeError:
-    #     # If JSON parsing fails, return a default response
-    #     return ChatbotResponse(
-    #         response="I'm sorry, I encountered an error. Could you please repeat your last input?",
-    #         collected_data={},
-    #         isCompleted=False
-        # )
+    except json.JSONDecodeError:
+        # If that fails, try to extract JSON from the response
+        json_match = re.search(r'\{.*\}', response_content, re.DOTALL)
+        if json_match:
+            try:
+                parsed_json = json.loads(json_match.group())
+                return ChatbotResponse(**parsed_json)
+            except json.JSONDecodeError:
+                pass  # If this fails, fall through to the manual parsing
+
+        # If JSON extraction fails, manually parse the response
+        response = response_content
+        collected_data = {}
+        is_completed = False
+
+        # Try to extract collected data
+        data_start = response_content.find("Collected Data:")
+        if data_start != -1:
+            data_section = response_content[data_start:]
+            data_items = re.findall(r'- (.*?): (.*?)(?:\n|$)', data_section)
+            collected_data = dict(data_items)
+
+        # Check if information gathering is completed
+        if "Information gathering completed: Yes" in response_content:
+            is_completed = True
+
+        return ChatbotResponse(
+            response=response,
+            collected_data=collected_data,
+            isCompleted=is_completed
+        )
 
 def handle_submit():
     if st.session_state.user_input and st.session_state.user_input.strip():

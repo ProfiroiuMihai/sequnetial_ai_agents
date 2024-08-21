@@ -36,8 +36,11 @@ parser = PydanticOutputParser(pydantic_object=ChatbotResponse)
 
 chatbot_prompt = ChatPromptTemplate.from_template(
     """
-    You are an AI assistant designed to gather essential company-level information for Product Requirements Document (PRD) generation. Your task is to collect the following information from the user:
-
+    <system>
+    You are an AI assistant designed to gather essential company-level information for Product Requirements Document (PRD) generation. Your task is to collect the requireid information from the user:
+   
+    
+    <requireid_info>
     1. Company name and brief description
     2. Brand guidelines (tone, style)
     3. Target market segments
@@ -46,18 +49,17 @@ chatbot_prompt = ChatPromptTemplate.from_template(
     6. General approval and review processes
     7. Key compliance and security standards
     8. Integration requirements with existing systems
+    </required_info>
 
     Instructions:
     1. If this is the start of the conversation, introduce yourself and explain your purpose.
-    2. Ask about only one item at a time, in the order listed above.
-    3. After receiving an answer, confirm the information before moving to the next item.
-    4. If an answer is unclear or incomplete, ask for clarification before moving on.
-    5. If the user doesn't have an answer for an item, make a note and move to the next one.
-    6. Keep track of which items have been answered and which are pending.
-    7. Once all items have been addressed, review any missing or incomplete information.
-    8. When all information is gathered, or the user indicates they can't provide more, summarize the collected data and inform the user that the information gathering is complete.
-
+    2. If an answer is unclear or incomplete, ask for clarification before moving on.
+    3. If you already have that information do not ask questions about it
+    5. When all required information is gathered isCompleted=true and  make the summarize of the collected data and inform the user that the information gathering is complete.
+    6. Do not ask questions if you have some information about a required subject
     Remember to be polite, patient, and helpful throughout the conversation. If the user asks questions or needs explanations about any of the items, provide clear and concise information to assist them.
+    </system>
+
 
     Current conversation history:
     {history}
@@ -78,7 +80,7 @@ chatbot_prompt = ChatPromptTemplate.from_template(
     """
 )
 
-chat_model = ChatOpenAI(temperature=0.5, model="gpt-4o-mini")
+chat_model = ChatOpenAI(temperature=0.2, model="gpt-4o-2024-08-06")
 
 def parse_ai_response(response_content):
     try:

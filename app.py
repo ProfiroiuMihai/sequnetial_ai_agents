@@ -8,10 +8,24 @@ from typing import Dict
 import json
 import os
 from dotenv import load_dotenv
+from streamlit_extras.switch_page_button import switch_page
 
 # Ensure you have set your OpenAI API key in your environment variables
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+st.set_page_config(initial_sidebar_state="collapsed")
+
+st.markdown(
+    """
+<style>
+    [data-testid="collapsedControl"] {
+        display: none
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 class ChatbotResponse(BaseModel):
     response: str = Field(description="The AI's response to the user")
@@ -64,7 +78,7 @@ chatbot_prompt = ChatPromptTemplate.from_template(
     """
 )
 
-chat_model = ChatOpenAI(temperature=0.7, model="gpt-4o-mini")
+chat_model = ChatOpenAI(temperature=0.5, model="gpt-4o-mini")
 
 def parse_ai_response(response_content):
     try:
@@ -185,4 +199,6 @@ if not st.session_state.conversation_active:
     st.write("Here's a summary of the collected information:")
     for key, value in st.session_state.collected_data.items():
         st.write(f"**{key}:** {value}")
+    if st.button("Start Interaction", type='primary'):
+        switch_page("data")
 

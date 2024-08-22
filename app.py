@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models.openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain.pydantic_v1 import BaseModel, Field
@@ -87,7 +87,6 @@ chatbot_prompt = ChatPromptTemplate.from_template(
     """
 )
 
-chat_model = ChatOpenAI(temperature=0.2, model="gpt-4o-2024-08-06")
 
 def parse_ai_response(response_content):
     try:
@@ -137,7 +136,9 @@ def handle_submit():
             human_input=user_input,
             format_instructions=parser.get_format_instructions()
         )
-
+        openai_key = st.session_state.openai_key
+        chat_model = ChatOpenAI(temperature=0.5, model="gpt-4o-2024-08-06",api_key=openai_key)
+        
         # Get the response from the language model
         response = chat_model(prompt.to_messages())
 

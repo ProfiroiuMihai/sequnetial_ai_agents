@@ -53,7 +53,7 @@ Business goals
 Key features or functions
 
 
-Based on the provided information, draft a comprehensive PRD including:
+Based on the provided information, and the collected_info from the company draft a comprehensive PRD including:
 
 Executive summary (tl;dr)
 Goals (business and user goals)
@@ -89,19 +89,14 @@ Ask for Clarifications: Feel free to request explanations or more depth on any p
 Request Revisions: Don’t hesitate to ask for adjustments or iterations on PRDs or other outputs.
 Explore Various Aspects: Use the assistant to dive into target users, business objectives, and essential features.
 
-Example prompts:
-
-"I have a new product idea. Can you help me draft a PRD?"
-"I need to define user stories for my current product. Where should we begin?"
-"Can you help prioritize features for our next release?"
 
 Here’s some brief information about the company:
 <company_info>
 {collected_info}
 </company_info>
-Use this to inform your responses.
 
-Chat History between PM and assistant is as follow
+
+Chat History between PM and ai assistant is:
 <chat_history>
 {chat_history}
 </chat_history>
@@ -121,7 +116,7 @@ ChatPromptTemplate.from_messages(
 )
 # Initialize the language model (you can choose your model and configuration)
 openai_llm = ChatOpenAI(
-    model="gpt-4o-mini",
+    model="gpt-4o-2024-08-06",
     temperature=0.5,
     api_key= st.session_state.openai_key,
     streaming=True

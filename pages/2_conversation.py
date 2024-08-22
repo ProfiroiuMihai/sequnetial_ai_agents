@@ -2,12 +2,16 @@ from openai import OpenAI
 import os
 import streamlit as st
 from langchain.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.llm import LLMChain
 from langchain_openai import ChatOpenAI
 from streamlit_extras.switch_page_button import switch_page
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
+if 'openai_key' not in st.session_state:
+    st.session_state.openai_key = ""
+    
 st.markdown(
     """
 <style>
@@ -18,7 +22,7 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-
+st.title("PRD Communicate with chat:")
 history=st.session_state.get('history')
 
 
@@ -110,18 +114,23 @@ Now, please answer the user's question:
 
 system_prompt = PromptTemplate(template=system_prompt_template, input_variables=[])
 human_prompt = PromptTemplate(template=human_prompt_template, input_variables=["user_input","collected_info","chat_history"])
-
+ChatPromptTemplate.from_messages(
+    [
+        
+    ]
+)
 # Initialize the language model (you can choose your model and configuration)
 openai_llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.5,
-    api_key= os.getenv("OPENAI_API_KEY")
+    api_key= st.session_state.openai_key,
+    streaming=True
 )
 # Create LLMChain for the system prompt
 system_llm_chain = LLMChain(prompt=system_prompt, llm=openai_llm)
 
 # Create LLMChain for the human prompt
-human_llm_chain = LLMChain(prompt=human_prompt, llm=openai_llm)
+human_llm_chain = LLMChain(prompt=human_prompt, llm=openai_llm,verbose=True,)
 
 def warningMarkdown():
     st.warning(f"**Information Collection Not Completed please go back")
@@ -129,37 +138,61 @@ def warningMarkdown():
         switch_page("app")
 
 def handle_submit():
-    if st.session_state.user_input and st.session_state.user_input.strip():
+    if st.session_state.user_input:
         user_input = st.session_state.user_input
+        st.session_state.conversation.append({
+            "role": "user", 
+            "content": user_input,
+        })
+        with st.chat_message("user"):
+            st.markdown(user_input)
         # First run the system prompt to establish context
         # system_response = system_llm_chain.run()
         collectedData= history[len(history)-1]
         
         # Then run the human prompt with user input
-        response = human_llm_chain.run(user_input=user_input,collected_info=collectedData['content'],chat_history=st.session_state.conversation)
+        response = human_llm_chain.run(user_input=user_input,collected_info=collectedData['collected_data'],chat_history=st.session_state.conversation)
+       
         st.session_state.conversation.append({
-            "role": "human", 
-            "content": user_input,
-        })
-        st.session_state.conversation.append({
-            "role": "ai", 
+            "role": "assistant", 
             "content": response,
         })
+        with st.chat_message("assistant"):
+            st.write(response)
+        # st.session_state.user_input = ""
+        st.components.v1.html(scroll_to_bottom_script)
         return response
         
 def startConveration():
-    st.title("PRD Communicate with chat:")
     # User input form
-    with st.form(key='user_input_form'):
-        user_input = st.text_input("Your message:", key="user_input")
-        submit_button = st.form_submit_button(label='Send', on_click=handle_submit)
+    # with st.form(key='user_input_form'):
+    #     user_input = st.text_input("Ask your query to Chat PRD:", key="user_input")
+    #     submit_button = st.form_submit_button(label='Send', on_click=handle_submit)
+    if prompt :=st.chat_input("Ask your query to Chat PRD:", key="user_input"):
+        handle_submit()
+        
         
  
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []       
 
+
+scroll_to_bottom_script = """
+<script>
+window.scrollTo(0, document.body.scrollHeight);
+</script>
+"""
+
+# Display chat history
+for i, message in enumerate(st.session_state.conversation):
+     with st.chat_message(message['role']):
+        st.markdown(message['content'])
+        st.markdown("---")  # Ad
+
 if history:
+    
     collectedData= history[len(history)-1]
+    print(collectedData['collected_data'])
     if 'isCompleted' in collectedData:
         if(collectedData['isCompleted']):
             startConveration()
@@ -170,14 +203,3 @@ if history:
 else:
     warningMarkdown()            
     
-# Display chat history
-for i, message in enumerate(st.session_state.conversation):
-    if message["role"] == "human":
-        # st.markdown(f"You:{message['content']}")
-        with st.chat_message("user"):
-            st.markdown(message['content'])
-    elif message["role"] == "ai":
-        with st.chat_message("assistant"):
-            st.markdown(message['content'])
-        # st.markdown(f"**AI:** {message['content']}")        
-    st.markdown("---")  # Ad

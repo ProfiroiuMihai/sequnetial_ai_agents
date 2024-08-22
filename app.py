@@ -7,15 +7,22 @@ import re
 from typing import Dict
 import json
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from streamlit_extras.switch_page_button import switch_page
 
+if 'openai_key' not in st.session_state:
+    st.session_state.openai_key = ""
+    
 # Ensure you have set your OpenAI API key in your environment variables
-load_dotenv()
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+# load_dotenv()
+# os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 st.set_page_config(initial_sidebar_state="collapsed")
 
+api_key = st.text_input("Enter your OpenAI API key:", type="password")
+
+if api_key:
+    st.session_state.openai_key=api_key
 st.markdown(
     """
 <style>
@@ -158,7 +165,8 @@ def handle_submit():
         st.session_state.user_input = ""
 
 # Streamlit app
-st.title("PRD Information Gathering Chatbot")
+if  st.session_state.openai_key:
+    st.title("PRD Information Gathering Chatbot")
 
 # Initialize session state
 if 'history' not in st.session_state:
@@ -169,6 +177,7 @@ if 'conversation_active' not in st.session_state:
     st.session_state.conversation_active = True
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
+
 
 # Display chat history
 for i, message in enumerate(st.session_state.history):
@@ -191,9 +200,10 @@ for i, message in enumerate(st.session_state.history):
         
 
 # User input form
-with st.form(key='user_input_form'):
-    user_input = st.text_input("Your message:", key="user_input", disabled=not st.session_state.conversation_active)
-    submit_button = st.form_submit_button(label='Send', on_click=handle_submit)
+if st.session_state.openai_key:
+    with st.form(key='user_input_form'):
+        user_input = st.text_input("Your message:", key="user_input", disabled=not st.session_state.conversation_active)
+        submit_button = st.form_submit_button(label='Send', on_click=handle_submit)
 
 # Check if all information has been collected
 if not st.session_state.conversation_active:
@@ -202,5 +212,5 @@ if not st.session_state.conversation_active:
     for key, value in st.session_state.collected_data.items():
         st.write(f"**{key}:** {value}")
     if st.button("Start Interaction", type='primary'):
-        switch_page("data")
+        switch_page("conversation")
 
